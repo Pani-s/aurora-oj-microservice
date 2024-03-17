@@ -1,0 +1,8 @@
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${pani.nacos.host:127.0.0.1}:8848
+pani:
+  nacos:
+    host: 127.0.0.1

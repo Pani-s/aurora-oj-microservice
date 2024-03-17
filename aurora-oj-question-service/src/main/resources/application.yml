@@ -1,0 +1,73 @@
+# 公共配置文件
+# @author pani
+# 
+spring:
+  application:
+    name: aurora-oj-question-service
+  # 默认 dev 环境
+  profiles:
+    active: dev
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # session 配置
+  session:
+    store-type: redis
+    # 30 天过期
+    timeout: 2592000
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${pani.mysql.host}:3306/${pani.mysql.dbname}?useUnicode=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+    username: ${pani.mysql.user:root}
+    password: ${pani.mysql.pwd}
+  # Redis 配置
+  redis:
+    database: 1
+    host: ${pani.redis.host}
+    port: 6379
+    timeout: 5000
+#      password: ${pani.redis.pwd}
+# rabbitmq 配置
+  rabbitmq:
+    host: ${pani.rabbitmq.host}
+    port: 5672
+    username: ${pani.rabbitmq.username}
+    password: ${pani.rabbitmq.pwd}
+  # 文件上传
+  servlet:
+    multipart:
+      # 大小限制
+      max-file-size: 5MB
+  # nacos
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${pani.nacos.host:localhost}:8848
+
+
+#server
+server:
+  address: 0.0.0.0
+  port: 8103
+  servlet:
+    context-path: /api/question
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+        path: /api
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+
+# 代码沙箱 类型配置
+knife4j:
+  enable: true
