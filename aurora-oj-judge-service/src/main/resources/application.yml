@@ -70,6 +70,15 @@ mybatis-plus:
 
 # 代码沙箱 类型配置
 codeSandbox:
-  type: remote
+  type: ai
+  remoteUrl: http://www.soogyu.xyz:8105
 knife4j:
   enable: true
+
+# AI接口调用
+#讯飞星火
+xunfei:
+  client:
+    appid: ${pani.ai.xunfei.appid}
+    apiSecret: ${pani.ai.xunfei.apiSecret}
+    apiKey: ${pani.ai.xunfei.apiKey}

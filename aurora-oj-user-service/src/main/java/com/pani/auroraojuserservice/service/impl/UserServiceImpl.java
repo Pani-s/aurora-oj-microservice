@@ -9,7 +9,9 @@ import com.pani.ojcommon.common.ErrorCode;
 import com.pani.ojcommon.constant.CommonConstant;
 import com.pani.ojcommon.constant.UserConstant;
 import com.pani.ojcommon.exception.BusinessException;
+import com.pani.ojcommon.exception.ThrowUtils;
 import com.pani.ojcommon.utils.SqlUtils;
+import com.pani.ojmodel.dto.user.UserPwdUpdateMyRequest;
 import com.pani.ojmodel.dto.user.UserQueryRequest;
 import com.pani.ojmodel.entity.User;
 import com.pani.ojmodel.enums.UserRoleEnum;
@@ -30,7 +32,6 @@ import java.util.stream.Collectors;
  * 用户服务实现
  *
  * @author pani
- * 
  */
 @Service
 @Slf4j
@@ -40,6 +41,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，混淆密码
      */
     private static final String SALT = "kookv";
+
+    private static final int PASSWORD_LEN = 3;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -234,4 +237,59 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 sortField);
         return queryWrapper;
     }
+
+    @Override
+    public boolean resetPassword(Long userId) {
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该用户不存在！");
+        }
+
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + "123456").getBytes());
+
+        user.setUserPassword(encryptPassword);
+        boolean update = this.updateById(user);
+        if (!update) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "重置密码失败，数据库错误");
+        }
+        return update;
+
+    }
+
+    @Override
+    public boolean changePwd(UserPwdUpdateMyRequest userPwdUpdateMyRequest, HttpServletRequest request) {
+        String userPassword = userPwdUpdateMyRequest.getUserPassword();
+        String newPassword = userPwdUpdateMyRequest.getNewPassword();
+        String checkedNewPassword = userPwdUpdateMyRequest.getCheckedNewPassword();
+
+        //检查两次输入的密码是否一致
+        if (StringUtils.isAnyBlank(userPassword, newPassword, checkedNewPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        if (userPassword.length() < PASSWORD_LEN || newPassword.length() < PASSWORD_LEN ||
+                checkedNewPassword.length() < PASSWORD_LEN) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度错误或过短");
+        }
+        ThrowUtils.throwIf(!(newPassword.equals(checkedNewPassword)),
+                ErrorCode.PARAMS_ERROR, "两次新密码输入不一致");
+
+        //检查旧密码是否一致
+        User loginUser = this.getLoginUser(request);
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("id", loginUser.getId());
+        queryWrapper.select("id", "userPassword");
+        User user = this.getOne(queryWrapper);
+        //        User user = this.getById(loginUser.getId());
+        String encryptOldPwd = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        ThrowUtils.throwIf(!(encryptOldPwd.equals(user.getUserPassword())),
+                ErrorCode.PARAMS_ERROR, "用户旧密码错误");
+        //终于可以开始改密码了
+        String encryptNewPwd = DigestUtils.md5DigestAsHex((SALT + newPassword).getBytes());
+        user.setUserPassword(encryptNewPwd);
+        this.updateById(user);
+        //用户退出应该是前端做
+        return true;
+    }
+
+
 }

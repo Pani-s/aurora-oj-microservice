@@ -26,4 +26,7 @@ public interface QuestionFeignClient {
 
     @PostMapping("/inc_acc")
     boolean incrAcNum(@RequestBody Long questionId);
+
+    @GetMapping("/question_submit/fail")
+    boolean setQuestionSubmitFailure(@RequestParam("questionId") long questionSubmitId);
 }

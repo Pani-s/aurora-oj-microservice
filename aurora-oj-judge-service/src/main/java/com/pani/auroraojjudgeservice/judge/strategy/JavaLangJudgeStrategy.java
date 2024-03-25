@@ -32,7 +32,8 @@ public class JavaLangJudgeStrategy implements JudgeStrategy {
         Long timeLimit = judgeConfig.getTimeLimit();
         Long memoryLimit = judgeConfig.getMemoryLimit();
 //                Long stackLimit = judgeConfig.getStackLimit();
-        if (executeMemory!=0L && executeMemory > memoryLimit) {
+        //byte ---> kb
+        if (executeMemory!=0L && executeMemory/1024 > memoryLimit) {
             judgeInfo.setMessage(JudgeInfoMessageEnum.MEMORY_LIMIT_EXCEEDED.getValue());
             return judgeInfo;
         }

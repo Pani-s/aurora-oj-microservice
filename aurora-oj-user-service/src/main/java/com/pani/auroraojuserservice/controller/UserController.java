@@ -246,7 +246,7 @@ public class UserController {
         return ResultUtils.success(userVOPage);
     }
 
-    // endregion
+
 
     /**
      * 更新个人信息
@@ -269,4 +269,40 @@ public class UserController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
+    /**
+     * 改密码
+     *
+     * @param userPwdUpdateMyRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/update/myPwd")
+    public BaseResponse<Boolean> updatePwdMyUser(@RequestBody UserPwdUpdateMyRequest userPwdUpdateMyRequest,
+                                                 HttpServletRequest request) {
+        if (userPwdUpdateMyRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean result = userService.changePwd(userPwdUpdateMyRequest, request);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 重置密码
+     *
+     * @param userId
+     * @param request
+     * @return
+     */
+    @PostMapping("/reset/pwd")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> resetPassword(@RequestBody Long userId,
+                                               HttpServletRequest request) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        return ResultUtils.success(userService.resetPassword(userId));
+    }
+
+    // endregion
 }

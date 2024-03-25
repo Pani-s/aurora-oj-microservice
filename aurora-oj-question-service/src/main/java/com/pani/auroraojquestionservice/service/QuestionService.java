@@ -34,7 +34,7 @@ public interface QuestionService extends IService<Question> {
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
 
     /**
-     * 获取帖子封装
+     * 获取题目封装
      *
      * @param question
      * @return
@@ -42,6 +42,13 @@ public interface QuestionService extends IService<Question> {
     QuestionVO getQuestionVO(Question question);
 //    QuestionVO getQuestionVO(Question question, HttpServletRequest request);
     //todo getQuestionVO ---HttpServletRequest
+
+    /**
+     * 获取题目封装，【不要userVO】
+     * @param id
+     * @return
+     */
+    QuestionVO getQuestionVOById(long id);
 
     /**
      * 分页获取题目封装
@@ -82,4 +89,11 @@ public interface QuestionService extends IService<Question> {
      * @return
      */
     Question getQuestionAnswerById(long id, HttpServletRequest request);
+
+    /**
+     * 题目通过数 + 1
+     * @param questionId
+     * @return
+     */
+    boolean incrAcNum(Long questionId);
 }

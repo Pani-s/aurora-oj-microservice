@@ -23,6 +23,7 @@ import com.pani.ojmodel.entity.User;
 import com.pani.ojmodel.enums.QuestionSubmitLanguageEnum;
 import com.pani.ojmodel.enums.QuestionSubmitStatusEnum;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.context.annotation.Lazy;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
  * @description 针对表【question_submit(题目提交)】的数据库操作Service实现
  * @createDate 2024-03-06 12:30:40
  */
+@Slf4j
 @Service
 public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper, QuestionSubmit>
         implements QuestionSubmitService {
@@ -90,6 +92,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
+        log.info("题目提交信息初始化完成:{}",questionSubmit);
         ThrowUtils.throwIf(questionSubmitId == null,ErrorCode.OPERATION_ERROR,
                 "创建题目提交信息失败");
 
@@ -197,6 +200,14 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
 
         questionVOPage.setRecords(questionSubmitVOList);
         return questionVOPage;
+    }
+
+    @Override
+    public boolean setQuestionSubmitFailure(long questionSubmitId) {
+        QuestionSubmit questionSubmit = new QuestionSubmit();
+        questionSubmit.setId(questionSubmitId);
+        questionSubmit.setStatus(QuestionSubmitStatusEnum.FAILED.getValue());
+        return this.updateById(questionSubmit);
     }
 }
 

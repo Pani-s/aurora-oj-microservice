@@ -1,11 +1,13 @@
 package com.pani.auroraojquestionservice.controller.inner;
 
+import cn.hutool.log.Log;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
 import com.pani.auroraojserviceclient.service.QuestionFeignClient;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -15,6 +17,7 @@ import javax.annotation.Resource;
  * @date Created in 2024/3/17 11:46
  * @description
  */
+@Slf4j
 @RestController
 @RequestMapping("/inner")
 public class QuestionInnerController implements QuestionFeignClient {
@@ -33,6 +36,7 @@ public class QuestionInnerController implements QuestionFeignClient {
     @GetMapping("/question_submit/get/id")
     @Override
     public QuestionSubmit getQuestionSubmitById(@RequestParam("questionId") long questionSubmitId) {
+        log.info("controller --- getQuestionSubmitById：{}",questionSubmitId);
         return questionSubmitService.getById(questionSubmitId);
     }
 
@@ -44,11 +48,13 @@ public class QuestionInnerController implements QuestionFeignClient {
 
     @Override
     public boolean incrAcNum(Long questionId) {
-        UpdateWrapper<Question> questionUpdateWrapper = new UpdateWrapper<>();
-        questionUpdateWrapper.eq("id",questionId);
-        questionUpdateWrapper.setSql("acceptedNum = acceptedNum + 1");
-        boolean update = questionService.update(questionUpdateWrapper);
-        return update;
+        return questionService.incrAcNum(questionId);
+    }
+
+    @Override
+    public boolean setQuestionSubmitFailure(long questionSubmitId) {
+        questionSubmitService.setQuestionSubmitFailure(questionSubmitId);
+        return false;
     }
 
 }

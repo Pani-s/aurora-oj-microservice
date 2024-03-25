@@ -51,4 +51,5 @@ public interface QuestionSubmitService extends IService<QuestionSubmit> {
     Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser);
 
 
+    boolean setQuestionSubmitFailure(long questionSubmitId);
 }

@@ -2,14 +2,18 @@ package com.pani.auroraojquestionservice.service.impl;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pani.auroraojquestionservice.manager.CacheClient;
 import com.pani.auroraojquestionservice.mapper.QuestionMapper;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
 import com.pani.auroraojserviceclient.service.UserFeignClient;
 import com.pani.ojcommon.common.ErrorCode;
+import com.pani.ojcommon.common.ResultUtils;
 import com.pani.ojcommon.constant.CommonConstant;
+import com.pani.ojcommon.constant.RedisConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojcommon.exception.ThrowUtils;
 import com.pani.ojcommon.utils.SqlUtils;
@@ -31,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +46,8 @@ import java.util.stream.Collectors;
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         implements QuestionService {
+    @Resource
+    private CacheClient cacheClient;
     @Resource
     private UserFeignClient userFeignClient;
 
@@ -155,6 +162,18 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         questionVO.setUserVO(userVO);
         //返回
         return questionVO;
+    }
+
+    @Override
+    public QuestionVO getQuestionVOById(long id) {
+        Question question = cacheClient.queryWithPassThrough(RedisConstant.CACHE_QUESTION, id, Question.class,
+                this::getById, RedisConstant.CACHE_QUESTION_TTL, TimeUnit.MINUTES);
+        if (question == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        //todo:这里没装userVO
+//        return this.getQuestionVO(question);
+        return QuestionVO.objToVo(question);
     }
 
     @Override
@@ -285,6 +304,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             throw new BusinessException(ErrorCode.OPERATION_ERROR);
         }
         return question;
+    }
+
+    @Override
+    public boolean incrAcNum(Long questionId) {
+
+        UpdateWrapper<Question> questionUpdateWrapper = new UpdateWrapper<>();
+        questionUpdateWrapper.eq("id", questionId);
+        questionUpdateWrapper.setSql("acceptedNum = acceptedNum + 1");
+        boolean update = this.update(questionUpdateWrapper);
+        return update;
     }
     //endregion
 

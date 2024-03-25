@@ -167,12 +167,12 @@ public class QuestionController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Question question = questionService.getById(id);
-        if (question == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-//        return ResultUtils.success(questionService.getQuestionVO(question, request));
-        return ResultUtils.success(questionService.getQuestionVO(question));
+        return ResultUtils.success(questionService.getQuestionVOById(id));
+//        Question question = questionService.getById(id);
+//        if (question == null) {
+//            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+//        }
+//        return ResultUtils.success(questionService.getQuestionVO(question));
 
     }
 
