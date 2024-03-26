@@ -9,13 +9,17 @@ public interface RedisConstant {
     /**
      * 题目页缓存
      */
-    String CACHE_QUESTION_PAGE = "cache:question:page";
+    String CACHE_QUESTION_PAGE = "cache:question:page:";
     /**
      * 题目信息缓存
      */
-    String CACHE_QUESTION = "cache:question";
+    String CACHE_QUESTION = "cache:question:";
 
-    long CACHE_NULL_TTL = 10;
+    String QUESTION_SUBMIT_LIMIT = "question:submit:";
+
+    long CACHE_NULL_TTL = 5;
 
     long CACHE_QUESTION_TTL = 30;
+
+    long CACHE_QUESTION_PAGE_TTL = 5;
 }

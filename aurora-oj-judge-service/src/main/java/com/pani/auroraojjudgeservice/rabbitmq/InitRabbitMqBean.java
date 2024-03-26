@@ -29,6 +29,9 @@ public class InitRabbitMqBean {
     @Value("${spring.rabbitmq.pwd:guest}")
     private String pwd;
 
+    public static void main(String[] args) {
+        new InitRabbitMqBean().init();
+    }
     @PostConstruct
     public void init() {
         ConnectionFactory factory = new ConnectionFactory();

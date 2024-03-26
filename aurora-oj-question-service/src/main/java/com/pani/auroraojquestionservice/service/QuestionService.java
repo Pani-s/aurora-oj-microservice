@@ -8,6 +8,7 @@ import com.pani.ojmodel.dto.question.QuestionQueryRequest;
 import com.pani.ojmodel.dto.question.QuestionUpdateRequest;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.vo.QuestionVO;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -26,6 +27,13 @@ public interface QuestionService extends IService<Question> {
     void validQuestion(Question question, boolean add);
 
     /**
+     * 分页获取列表（封装类）
+     * QuestionVO中的UserVO没有填充
+     */
+    Page<QuestionVO> listQuestionVOByPage(QuestionQueryRequest questionQueryRequest,
+                                          HttpServletRequest request);
+
+    /**
      * 获取查询条件
      *
      * @param questionQueryRequest
@@ -34,7 +42,7 @@ public interface QuestionService extends IService<Question> {
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
 
     /**
-     * 获取题目封装
+     * 获取题目封装 要UserVO
      *
      * @param question
      * @return
@@ -61,7 +69,7 @@ public interface QuestionService extends IService<Question> {
 
 
     /**
-     * 获取题目
+     * 获取题目 但是不装载userVO
      * @param questionPage
      * @return
      */

@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class ExampleCodeSandbox implements CodeSandbox {
-    private final int TIMELIMIT_5 = 3000;
+    private final int TIMELIMIT_10 = 10000;
 
     @Value("${codeSandbox.remoteUrl}")
     private String remoteUrl;
@@ -41,7 +41,7 @@ public class ExampleCodeSandbox implements CodeSandbox {
         String json = JSONUtil.toJsonStr(executeCodeRequest);
         try (HttpResponse httpResponse = HttpUtil.createPost(url)
                 .header(AUTH_REQUEST_HEADER, AUTH_REQUEST_SECRET)
-                .body(json).timeout(TIMELIMIT_5)
+                .body(json).timeout(TIMELIMIT_10)
                 .execute()) {
             String responseStr = httpResponse.body();
             if (StringUtils.isBlank(responseStr)) {

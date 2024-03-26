@@ -11,7 +11,6 @@ import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
 import com.pani.auroraojserviceclient.service.UserFeignClient;
 import com.pani.ojcommon.common.ErrorCode;
-import com.pani.ojcommon.common.ResultUtils;
 import com.pani.ojcommon.constant.CommonConstant;
 import com.pani.ojcommon.constant.RedisConstant;
 import com.pani.ojcommon.exception.BusinessException;
@@ -95,6 +94,27 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         }
     }
 
+    @Override
+    public Page<QuestionVO> listQuestionVOByPage(QuestionQueryRequest questionQueryRequest, HttpServletRequest request) {
+        long current = questionQueryRequest.getCurrent();
+        long size = questionQueryRequest.getPageSize();
+        ThrowUtils.throwIf(current < 0 || size < 0, ErrorCode.PARAMS_ERROR);
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR, "请求参数过大");
+        //缓存里拿
+        String key = RedisConstant.CACHE_QUESTION_PAGE + current + "-" + size;
+        Page<QuestionVO> pageCache = cacheClient.getPageCache(key, QuestionVO.class);
+        if (pageCache != null) {
+            return pageCache;
+        }
+        //查询。放缓存
+        Page<Question> questionPage = this.page(new Page<>(current, size),
+                this.getQueryWrapper(questionQueryRequest));
+        Page<QuestionVO> questionVOPage = this.getQuestionVOPage(questionPage);
+        cacheClient.set(key, questionVOPage, RedisConstant.CACHE_QUESTION_PAGE_TTL, TimeUnit.MINUTES);
+        return questionVOPage;
+    }
+
     /**
      * 获取查询包装类（用户根据哪些字段查询，根据前端传来的请求对象，得到 mybatis 框架支持的查询 QueryWrapper 类）
      *
@@ -172,7 +192,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
         //todo:这里没装userVO
-//        return this.getQuestionVO(question);
+        //        return this.getQuestionVO(question);
         return QuestionVO.objToVo(question);
     }
 
@@ -277,6 +297,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         if (!result) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR);
         }
+        //删除缓存
+        cacheClient.deleteKey(RedisConstant.CACHE_QUESTION + id);
+        cacheClient.deleteKeyWithPrefix(RedisConstant.CACHE_QUESTION_PAGE);
         return result;
     }
 

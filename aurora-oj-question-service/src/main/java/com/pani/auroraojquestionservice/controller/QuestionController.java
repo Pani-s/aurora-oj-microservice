@@ -2,6 +2,8 @@ package com.pani.auroraojquestionservice.controller;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.pani.auroraojquestionservice.manager.CacheClient;
+import com.pani.auroraojquestionservice.manager.RedisLimiterManager;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
 import com.pani.auroraojserviceclient.service.UserFeignClient;
@@ -10,6 +12,7 @@ import com.pani.ojcommon.common.BaseResponse;
 import com.pani.ojcommon.common.DeleteRequest;
 import com.pani.ojcommon.common.ErrorCode;
 import com.pani.ojcommon.common.ResultUtils;
+import com.pani.ojcommon.constant.RedisConstant;
 import com.pani.ojcommon.constant.UserConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojcommon.exception.ThrowUtils;
@@ -41,6 +44,9 @@ import java.util.List;
 @RequestMapping("/")
 @Slf4j
 public class QuestionController {
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     @Resource
     private QuestionService questionService;
@@ -117,6 +123,7 @@ public class QuestionController {
     }
 
     /**
+     * 前端用的是update
      * 更新（仅管理员）
      *
      * @param questionUpdateRequest
@@ -192,7 +199,7 @@ public class QuestionController {
 
     /**
      * 分页获取列表（封装类）
-     *
+     *QuestionVO中的UserVO没有填充
      * @param questionQueryRequest
      * @param request
      * @return
@@ -200,13 +207,11 @@ public class QuestionController {
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
             HttpServletRequest request) {
-        long current = questionQueryRequest.getCurrent();
-        long size = questionQueryRequest.getPageSize();
-        // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
-        return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+        /*
+        其实题目列表缓存。。。是否需要说题目数更新了之后就删除缓存呢？不过题目信息的更新需要删除缓存
+         */
+        ThrowUtils.throwIf(questionQueryRequest == null,ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(questionService.listQuestionVOByPage(questionQueryRequest,request));
     }
 
     /**
@@ -285,6 +290,8 @@ public class QuestionController {
         }
         // 登录才能操作
         final User loginUser = userFeignClient.getLoginUser(request);
+        //判定限流
+        redisLimiterManager.doRateLimit(RedisConstant.QUESTION_SUBMIT_LIMIT + loginUser.getId());
         long questionSubmitId = questionSubmitService.doQuestionSubmit(questionSubmitAddRequest, loginUser);
         return ResultUtils.success(questionSubmitId);
     }
