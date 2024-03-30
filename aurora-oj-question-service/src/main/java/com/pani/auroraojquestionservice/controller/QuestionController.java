@@ -2,7 +2,6 @@ package com.pani.auroraojquestionservice.controller;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.pani.auroraojquestionservice.manager.CacheClient;
 import com.pani.auroraojquestionservice.manager.RedisLimiterManager;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
@@ -22,6 +21,7 @@ import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.entity.User;
+import com.pani.ojmodel.enums.QuestionSubmitStatusEnum;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
 import com.pani.ojmodel.vo.QuestionVO;
 import lombok.extern.slf4j.Slf4j;
@@ -211,6 +211,9 @@ public class QuestionController {
         其实题目列表缓存。。。是否需要说题目数更新了之后就删除缓存呢？不过题目信息的更新需要删除缓存
          */
         ThrowUtils.throwIf(questionQueryRequest == null,ErrorCode.PARAMS_ERROR);
+        //不支持以答案和内容查找
+        questionQueryRequest.setAnswer(null);
+        questionQueryRequest.setContent(null);
         return ResultUtils.success(questionService.listQuestionVOByPage(questionQueryRequest,request));
     }
 
@@ -361,6 +364,41 @@ public class QuestionController {
         //提交代码不给看了
         questionSubmitPage.getRecords().forEach((o) -> o.setCode(null));
         return ResultUtils.success(questionSubmitPage);
+    }
+
+    /**
+     * 重试修改失败的提交
+     * @param deleteRequest
+     * @param request
+     */
+    @PostMapping("/submit/retry")
+    public BaseResponse<Boolean> retryMyErrorSubmit(@RequestBody DeleteRequest deleteRequest,
+                                                  HttpServletRequest request) {
+        if (deleteRequest == null || deleteRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean b = questionSubmitService.retryMyErrorSubmit(deleteRequest.getId(), request);
+        return ResultUtils.success(b);
+    }
+
+    /**
+     * 删除修改失败的提交
+     * @param deleteRequest
+     * @param request
+     */
+    @PostMapping("/submit/delete")
+    public BaseResponse<Boolean> delMyErrorSubmit(@RequestBody DeleteRequest deleteRequest,
+                                                                          HttpServletRequest request) {
+        if (deleteRequest == null || deleteRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        questionSubmitService.checkErrorQuestion(deleteRequest.getId(),request);
+        //删除
+        boolean b = questionSubmitService.removeById(deleteRequest.getId());
+        if(!b){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,"删除失败！");
+        }
+        return ResultUtils.success(b);
     }
     //endregion
 }

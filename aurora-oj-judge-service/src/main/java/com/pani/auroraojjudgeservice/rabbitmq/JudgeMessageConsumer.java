@@ -4,17 +4,14 @@ import com.pani.auroraojjudgeservice.judge.JudgeService;
 import com.pani.auroraojserviceclient.service.QuestionFeignClient;
 import com.pani.ojcommon.constant.MqConstant;
 import com.rabbitmq.client.Channel;
-import javafx.scene.chart.Chart;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.IOException;
 
 /**
  * @author Pani
@@ -41,7 +38,7 @@ public class JudgeMessageConsumer {
             judgeService.doJudge(questionSubmitId);
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
-            log.info("消息队列，捕捉到异常：{}",e.getMessage());
+            log.error("消息队列，捕捉到异常：{}",e.getMessage());
             channel.basicNack(deliveryTag, false, false);
         }
     }
@@ -49,16 +46,16 @@ public class JudgeMessageConsumer {
     /**
      * 死信消费异常消息
      *
-     * @param message
-     * @param channel
-     * @param deliveryTag
      */
     @SneakyThrows
     @RabbitListener(queues = {MqConstant.DLX_QUEUE_NAME}, ackMode = "MANUAL")
     public void receiveErrorMessage(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         long questionSubmitId = Long.parseLong(message);
         log.info("---------死信消费异常消息--------question id : {}",questionSubmitId);
-        questionFeignClient.setQuestionSubmitFailure(questionSubmitId);
+        boolean b = questionFeignClient.setQuestionSubmitFailure(questionSubmitId);
+        if(!b){
+            log.error("题目状态数据库更改失败！");
+        }
         log.info("---------死信消费异常消息成功--------");
         channel.basicAck(deliveryTag,false);
     }

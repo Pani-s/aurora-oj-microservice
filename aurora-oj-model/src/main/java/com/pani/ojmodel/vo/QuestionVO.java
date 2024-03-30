@@ -7,7 +7,6 @@ import com.pani.ojmodel.entity.Question;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -68,16 +67,21 @@ public class QuestionVO {
     private Long userId;
 
     /**
-     * 创建时间
+     * 当前用户是否通过
      */
-    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date createTime;
+    private Boolean isPass;
 
-    /**
-     * 更新时间
-     */
-    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date updateTime;
+//    /**
+//     * 创建时间
+//     */
+//    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
+//    private Date createTime;
+//
+//    /**
+//     * 更新时间
+//     */
+//    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
+//    private Date updateTime;
     
     /**
      * 创建题目人的信息

@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,35 +75,40 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         // 判断实体是否存在，根据类别获取实体
         Question question = questionService.getById(questionId);
         if (question == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR,"对应的题目不存在");
         }
-        // 是否已提交题目
+
         long userId = loginUser.getId();
-        // 每个用户【串行】提交题目 手动防止连点是叭
         QuestionSubmit questionSubmit = new QuestionSubmit();
         questionSubmit.setUserId(userId);
         questionSubmit.setQuestionId(questionId);
         questionSubmit.setCode(questionSubmitAddRequest.getCode());
         questionSubmit.setLanguage(language);
-        // 设置初始状态
+        // 设置初始状态，等待判题中
         questionSubmit.setStatus(QuestionSubmitStatusEnum.WAITING.getValue());
         questionSubmit.setJudgeInfo("{}");
         boolean save = this.save(questionSubmit);
         if (!save) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目提交数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
-        log.info("题目提交信息初始化完成:{}",questionSubmit);
-        ThrowUtils.throwIf(questionSubmitId == null,ErrorCode.OPERATION_ERROR,
-                "创建题目提交信息失败");
+        log.info("题目提交信息初始化完成并存入数据库:{}",questionSubmit);
+
 
         //题目提交数+1
-        UpdateWrapper<Question> questionUpdateWrapper = new UpdateWrapper<>();
-        questionUpdateWrapper.eq("id",questionId);
-        questionUpdateWrapper.setSql("submitNum = submitNum + 1");
-        questionService.update(questionUpdateWrapper);
+        CompletableFuture.runAsync(() -> {
+            UpdateWrapper<Question> questionUpdateWrapper = new UpdateWrapper<>();
+            questionUpdateWrapper.eq("id",questionId);
+            questionUpdateWrapper.setSql("submitNum = submitNum + 1");
+            boolean update = questionService.update(questionUpdateWrapper);
+            if(!update){
+                log.error("数据库 - 题目提交数+1 失败：{}",questionId);
+            }
+        });
+
 
         //消息队列
+        log.info("题目提交信息发送至消息队列，id是:{}",questionSubmitId);
         judgeMessageProducer.sendMessage(String.valueOf(questionSubmitId));
 
         //异步执行判题服务
@@ -143,7 +149,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     @Override
     public QuestionSubmitVO getQuestionSubmitVO(QuestionSubmit questionSubmit, User loginUser) {
         QuestionSubmitVO questionSubmitVO = QuestionSubmitVO.objToVo(questionSubmit);
-        // 脱敏：仅【本人和管理员】能看见自己（提交 userId 和登录用户 id 不同）提交的代码 todo：现在感觉又可以看，不过这个方法目前没人用
+        // 脱敏：仅【本人和管理员】能看见自己（提交 userId 和登录用户 id 不同）提交的代码
+        // todo：现在感觉又可以看，不过这个方法目前没人用
         // 1. 关联查询用户信息
         Long userId1 = loginUser.getId();
         if (!userId1.equals(questionSubmit.getUserId()) && !userFeignClient.isAdmin(loginUser)) {
@@ -208,6 +215,31 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         questionSubmit.setId(questionSubmitId);
         questionSubmit.setStatus(QuestionSubmitStatusEnum.FAILED.getValue());
         return this.updateById(questionSubmit);
+    }
+
+    @Override
+    public void checkErrorQuestion(long questionSubmitId, HttpServletRequest request){
+        //检查用户在不在
+        User loginUser = userFeignClient.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null , ErrorCode.NOT_LOGIN_ERROR);
+        //查找questionSubmit
+        QuestionSubmit questionSubmit = this.getById(questionSubmitId);
+        ThrowUtils.throwIf(questionSubmit == null , ErrorCode.NOT_FOUND_ERROR,"题目提交信息不存在");
+        if(!questionSubmit.getUserId().equals(loginUser.getId())){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"该题目提交信息不属于该用户！");
+        }
+        if(!questionSubmit.getStatus().equals(QuestionSubmitStatusEnum.ERROR.getValue())){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"该题目提交信息非ERROR状态");
+        }
+    }
+
+    @Override
+    public boolean retryMyErrorSubmit(long questionSubmitId, HttpServletRequest request) {
+        checkErrorQuestion(questionSubmitId,request);
+        //消息队列
+        log.info("Retry - 题目提交信息发送至消息队列，id是:{}",questionSubmitId);
+        judgeMessageProducer.sendMessage(String.valueOf(questionSubmitId));
+        return true;
     }
 }
 

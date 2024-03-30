@@ -1,5 +1,6 @@
 package com.pani.auroraojquestionservice.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
@@ -7,8 +8,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pani.auroraojquestionservice.manager.CacheClient;
 import com.pani.auroraojquestionservice.mapper.QuestionMapper;
+import com.pani.auroraojquestionservice.mapper.UserSubmitMapper;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
+import com.pani.auroraojquestionservice.service.UserSubmitService;
 import com.pani.auroraojserviceclient.service.UserFeignClient;
 import com.pani.ojcommon.common.ErrorCode;
 import com.pani.ojcommon.constant.CommonConstant;
@@ -49,6 +52,11 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     private CacheClient cacheClient;
     @Resource
     private UserFeignClient userFeignClient;
+    @Resource
+    private UserSubmitService userSubmitService;
+
+    @Resource
+    private UserSubmitMapper userSubmitMapper;
 
     @Resource
     @Lazy
@@ -101,16 +109,37 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         ThrowUtils.throwIf(current < 0 || size < 0, ErrorCode.PARAMS_ERROR);
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR, "请求参数过大");
+        User loginUser = userFeignClient.getLoginUserMayNull(request);
+
+        //如果没有任何搜索词，就可以走缓存。
+        Long id = questionQueryRequest.getId();
+        String title = questionQueryRequest.getTitle();
+        String content = questionQueryRequest.getContent();
+        List<String> tags = questionQueryRequest.getTags();
+        if (id != null || !(StringUtils.isAllBlank(title, content)) || !(CollectionUtil.isEmpty(tags))) {
+            //id不为空，搜索词不全空，tags不空，则不能走缓存
+            Page<Question> questionPage = this.page(new Page<>(current, size),
+                    this.getQueryWrapper(questionQueryRequest));
+            return this.getQuestionVOPage(questionPage, loginUser);
+        }
+
+        String key = null;
         //缓存里拿
-        String key = RedisConstant.CACHE_QUESTION_PAGE + current + "-" + size;
+        if (loginUser == null) {
+            key = RedisConstant.CACHE_QUESTION_PAGE + current + "-" + size;
+        } else {
+            key = RedisConstant.CACHE_QUESTION_PAGE + current + "-" + size + "-" + loginUser.getId();
+        }
+
         Page<QuestionVO> pageCache = cacheClient.getPageCache(key, QuestionVO.class);
         if (pageCache != null) {
             return pageCache;
         }
+
         //查询。放缓存
         Page<Question> questionPage = this.page(new Page<>(current, size),
                 this.getQueryWrapper(questionQueryRequest));
-        Page<QuestionVO> questionVOPage = this.getQuestionVOPage(questionPage);
+        Page<QuestionVO> questionVOPage = this.getQuestionVOPage(questionPage, loginUser);
         cacheClient.set(key, questionVOPage, RedisConstant.CACHE_QUESTION_PAGE_TTL, TimeUnit.MINUTES);
         return questionVOPage;
     }
@@ -224,14 +253,40 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
-    public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage) {
+    public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, User user) {
         List<Question> questionList = questionPage.getRecords();
         Page<QuestionVO> questionVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
         if (CollectionUtils.isEmpty(questionList)) {
             return questionVOPage;
         }
         // 填充信息
-        List<QuestionVO> questionVOList = questionList.stream().map(QuestionVO::objToVo).collect(Collectors.toList());
+        //        List<QuestionVO> questionVOList = questionList.stream().map(QuestionVO::objToVo).collect(Collectors.toList());
+
+        List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
+        Map<Long, Map<String,Long>> maps;
+        if (user != null) {
+            maps = userSubmitMapper.checkExistForQuestionIds(user.getId(), questionIdList);
+        } else {
+            maps = null;
+        }
+        if (maps != null && maps.size() == 1) {
+            if (maps.containsKey(null)) {
+                maps = null;
+            }
+        }
+
+        Map<Long, Map<String,Long>> finalMaps = maps;
+        List<QuestionVO> questionVOList = questionList.stream().map(question -> {
+            QuestionVO questionVO = QuestionVO.objToVo(question);
+            Long questionVOId = questionVO.getId();
+            if (finalMaps != null && finalMaps.containsKey(questionVOId)) {
+                Long i = finalMaps.get(questionVOId).get("count");
+                questionVO.setIsPass(i != 0);
+            }else{
+                questionVO.setIsPass(false);
+            }
+            return questionVO;
+        }).collect(Collectors.toList());
         questionVOPage.setRecords(questionVOList);
         return questionVOPage;
     }
@@ -305,7 +360,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
     @Override
     public Question getQuestionAnswerById(long questionId, HttpServletRequest request) {
-        User loginUser = userFeignClient.getLoginUser(request);
+        User loginUser = userFeignClient.getLoginUserMayNull(request);
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
@@ -341,7 +396,3 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     //endregion
 
 }
-
-
-
-

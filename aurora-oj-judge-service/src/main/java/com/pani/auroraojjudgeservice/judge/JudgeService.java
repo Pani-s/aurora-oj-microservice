@@ -13,5 +13,14 @@ public interface JudgeService {
      */
     boolean doJudge(long questionSubmitId);
 
+    /**
+     * 设置代码沙箱类型
+     * @param type
+     */
     void setType(String type);
+
+    /**
+     * get代码沙箱类型
+     */
+    String getType();
 }

@@ -53,20 +53,4 @@ public class ExampleCodeSandbox implements CodeSandbox {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
         }
     }
-
-
-    /*@Override
-    public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
-        System.out.println("示例代码沙箱");
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        executeCodeResponse.setOutputList(executeCodeRequest.getInputList());
-        executeCodeResponse.setMessage("测试---代码执行");
-        executeCodeResponse.setStatus(QuestionSubmitStatusEnum.FINISHED.getValue());
-        JudgeInfo judgeInfo = new JudgeInfo();
-        judgeInfo.setMessage(JudgeInfoMessageEnum.SYSTEM_ERROR.getValue());
-        judgeInfo.setMemory(100L);
-        judgeInfo.setTime(100L);
-        executeCodeResponse.setJudgeInfo(judgeInfo);
-        return executeCodeResponse;
-    }*/
 }

@@ -7,6 +7,7 @@ import com.pani.ojmodel.dto.question.QuestionEditRequest;
 import com.pani.ojmodel.dto.question.QuestionQueryRequest;
 import com.pani.ojmodel.dto.question.QuestionUpdateRequest;
 import com.pani.ojmodel.entity.Question;
+import com.pani.ojmodel.entity.User;
 import com.pani.ojmodel.vo.QuestionVO;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -49,7 +50,6 @@ public interface QuestionService extends IService<Question> {
      */
     QuestionVO getQuestionVO(Question question);
 //    QuestionVO getQuestionVO(Question question, HttpServletRequest request);
-    //todo getQuestionVO ---HttpServletRequest
 
     /**
      * 获取题目封装，【不要userVO】
@@ -73,7 +73,7 @@ public interface QuestionService extends IService<Question> {
      * @param questionPage
      * @return
      */
-    Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
+    Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, User user);
 
     /**
      * 编辑题目的信息（普通用户自己）

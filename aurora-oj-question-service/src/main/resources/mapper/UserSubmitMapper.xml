@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pani.auroraojquestionservice.mapper.UserSubmitMapper">
+
+    <resultMap id="BaseResultMap" type="com.pani.ojmodel.entity.UserSubmit">
+            <id property="userId" column="userId" jdbcType="BIGINT"/>
+            <result property="questionId" column="questionId" jdbcType="BIGINT"/>
+            <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        userId,questionId,createTime
+    </sql>
+
+
+    <resultMap id="questionResultMap" type="map">
+        <result property="key" column="questionId" javaType="java.lang.Long" jdbcType="BIGINT"/>
+        <result property="value" column="count" javaType="java.lang.Integer"/>
+        <!-- 如果count列的值是一个Map，您可以在这里添加更多的<result>元素来映射这个内部Map的键值对 -->
+    </resultMap>
+
+    <!-- 查询是否存在的方法 -->
+    <select id="checkExistForQuestionIds" resultType="map">
+        SELECT questionId, COUNT(*) AS `count`
+        FROM `user_submit`
+        WHERE userId = #{userId}
+          AND questionId IN
+            <foreach item="item" collection="questionIds" open="(" separator="," close=")">
+            #{item}
+            </foreach>
+#         GROUP BY questionId
+    </select>
+
+
+</mapper>

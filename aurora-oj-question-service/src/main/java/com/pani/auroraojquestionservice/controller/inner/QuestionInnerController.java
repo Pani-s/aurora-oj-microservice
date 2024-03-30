@@ -2,8 +2,10 @@ package com.pani.auroraojquestionservice.controller.inner;
 
 import cn.hutool.log.Log;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.pani.auroraojquestionservice.mapper.UserSubmitMapper;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
+import com.pani.auroraojquestionservice.service.UserSubmitService;
 import com.pani.auroraojserviceclient.service.QuestionFeignClient;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
@@ -26,6 +28,9 @@ public class QuestionInnerController implements QuestionFeignClient {
 
     @Resource
     private QuestionSubmitService questionSubmitService;
+
+    @Resource
+    private UserSubmitService userSubmitService;
 
     @GetMapping("/get/id")
     @Override
@@ -53,8 +58,16 @@ public class QuestionInnerController implements QuestionFeignClient {
 
     @Override
     public boolean setQuestionSubmitFailure(long questionSubmitId) {
-        questionSubmitService.setQuestionSubmitFailure(questionSubmitId);
-        return false;
+        return questionSubmitService.setQuestionSubmitFailure(questionSubmitId);
+    }
+
+    @Override
+    public boolean updateUserSubmitRecord(long questionSubmitId) {
+        QuestionSubmit questionSubmit = questionSubmitService.getById(questionSubmitId);
+        if(questionSubmit == null){
+            return false;
+        }
+        return userSubmitService.updateUserSubmitRecord(questionSubmit.getQuestionId(),questionSubmit.getUserId());
     }
 
 }

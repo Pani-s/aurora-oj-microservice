@@ -21,8 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,8 @@ public class JudgeServiceImpl implements JudgeService {
     @Value("${codeSandbox.type:example}")
     private String type;
 
+    private final AtomicReference<String> atomicType = new AtomicReference<>();
+
     @Resource
     private CodeSandboxFactory codeSandboxFactory;
     @Resource
@@ -43,6 +48,10 @@ public class JudgeServiceImpl implements JudgeService {
     @Resource
     private JudgeManager judgeManager;
 
+    @PostConstruct
+    public void initializeType() {
+        atomicType.set(type);
+    }
 
     /**
      * 题外话：因为代码量太多，本来想把前面抽出成单独的方法，但question的judge case需要获得，request需要获得
@@ -53,6 +62,7 @@ public class JudgeServiceImpl implements JudgeService {
         //1 传入题目的提交 id，在数据库中获取到对应的题目、提交信息（包含代码、编程语言等）
         QuestionSubmit questionSubmit = questionFeignClient.getQuestionSubmitById(questionSubmitId);
         if (questionSubmit == null) {
+            //todo:测试的时候为什么有时候 提交信息不存在 TAT
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "题目提交信息不存在！");
         }
         String language = questionSubmit.getLanguage();
@@ -61,7 +71,7 @@ public class JudgeServiceImpl implements JudgeService {
         Integer status = questionSubmit.getStatus();
 
         //如果题目提交状态不为等待中，就不用重复执行了
-        if (!status.equals(QuestionSubmitStatusEnum.WAITING.getValue())) {
+        if (status.equals(QuestionSubmitStatusEnum.RUNNING.getValue())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "正在判题中，请勿重复提交！");
         }
 
@@ -91,7 +101,7 @@ public class JudgeServiceImpl implements JudgeService {
                 language(language).
                 inputList(inputList).
                 build();
-        CodeSandbox codeSandbox = codeSandboxFactory.getInstanceWithType(type);
+        CodeSandbox codeSandbox = codeSandboxFactory.getInstanceWithType(atomicType.get());
 //        CodeSandbox codeSandbox = CodeSandboxFactory.getInstance();
         ExecuteCodeResponse executeCodeResponse;
         try {
@@ -151,18 +161,39 @@ public class JudgeServiceImpl implements JudgeService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目提交状态更新错误");
         }
         //QuestionSubmit questionSubmitResult = questionFeignClient.getQuestionSubmitById(questionId);
+
         //该题目，通过数加一
-        if (!questionFeignClient.incrAcNum(questionId)) {
-            //todo:用消息队列优化？
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目通过数信息更新错误");
-        }
+        CompletableFuture.runAsync(() -> {
+            if (!questionFeignClient.incrAcNum(questionId)) {
+                log.error("题目通过数信息更新错误: {}",questionId);
+//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目通过数信息更新错误");
+            }
+        });
+
+        //记录用户通过
+        CompletableFuture.runAsync(() -> {
+            if (!questionFeignClient.updateUserSubmitRecord(questionId)) {
+                log.error("用户题目通过记录信息更新错误: {}",questionId);
+                //                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目通过数信息更新错误");
+            }
+        });
+
         return true;
     }
 
     @Override
-    public void setType(String type) {
-        log.info("sandbox 类型发生变换:{}",type);
-        this.type = type;
+    public void setType(String newType) {
+        //防止并发问题 CAS
+        if (!atomicType.compareAndSet(this.atomicType.get(), newType)) {
+            // 可能需要进行重试逻辑，但我不，抛出异常
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,"修改沙箱类型失败！");
+        }
+        log.info("sandbox 类型发生变换:{}",newType);
+    }
+
+    @Override
+    public String getType() {
+        return atomicType.get();
     }
 
 }

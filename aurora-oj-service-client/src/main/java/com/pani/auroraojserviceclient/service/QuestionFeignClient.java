@@ -15,18 +15,51 @@ import org.springframework.web.bind.annotation.RequestParam;
  */
 @FeignClient(name = "aurora-oj-question-service", path = "/api/question/inner")
 public interface QuestionFeignClient {
+    /**
+     * 获取question
+     * @param questionId
+     * @return
+     */
     @GetMapping("/get/id")
     Question getQuestionById(@RequestParam("questionId") long questionId);
 
+    /**
+     * 获取 questionSubmitId
+     * @param questionSubmitId
+     * @return
+     */
     @GetMapping("/question_submit/get/id")
     QuestionSubmit getQuestionSubmitById(@RequestParam("questionId") long questionSubmitId);
 
+    /**
+     * 更新 questionSubmitId
+     * @param questionSubmit
+     * @return
+     */
     @PostMapping("/question_submit/update")
     boolean updateQuestionSubmitById(@RequestBody QuestionSubmit questionSubmit);
 
+    /**
+     * 增加 题目通过数
+     * @param questionId
+     * @return
+     */
     @PostMapping("/inc_acc")
     boolean incrAcNum(@RequestBody Long questionId);
 
-    @GetMapping("/question_submit/fail")
-    boolean setQuestionSubmitFailure(@RequestParam("questionId") long questionSubmitId);
+    /**
+     * 将题目提交信息设置为失败~
+     * @param questionSubmitId
+     * @return
+     */
+    @PostMapping("/question_submit/fail")
+    boolean setQuestionSubmitFailure(@RequestBody long questionSubmitId);
+
+    /**
+     * 更新 - 如果用户已经通过了就不做 用户没通过就增加记录
+     * @param questionSubmitId
+     * @return
+     */
+    @PostMapping("/user_submit/update")
+    boolean updateUserSubmitRecord(@RequestBody long questionSubmitId);
 }

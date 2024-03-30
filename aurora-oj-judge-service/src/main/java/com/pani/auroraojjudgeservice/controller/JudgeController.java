@@ -9,6 +9,7 @@ import com.pani.ojcommon.common.ResultUtils;
 import com.pani.ojcommon.constant.UserConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojmodel.sandbox.SandboxTypeEnum;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,6 +43,16 @@ public class JudgeController {
 //        CodeSandboxFactory.setType(type);
         judgeService.setType(type);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 修改沙箱类型（仅管理员）
+     * @return
+     */
+    @GetMapping("/get/type")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    BaseResponse<String> getCodeSandboxType(){
+        return ResultUtils.success(judgeService.getType());
     }
 
 }

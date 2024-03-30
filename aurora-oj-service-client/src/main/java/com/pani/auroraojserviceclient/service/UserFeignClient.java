@@ -63,6 +63,20 @@ public interface UserFeignClient{
         return currentUser;
     }
 
+    /**
+     * 获取当前登录用户 因为这个方法比较简单就默认实现了
+     *
+     * @param request
+     * @return
+     */
+    default User getLoginUserMayNull(HttpServletRequest request) {
+        // 先判断是否已登录
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        // 可以考虑在这里做全局权限校验
+        return currentUser;
+    }
+
 
     /**
      * 是否为管理员
