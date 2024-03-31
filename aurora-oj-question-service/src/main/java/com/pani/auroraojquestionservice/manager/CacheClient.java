@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -41,6 +42,36 @@ public class CacheClient {
      */
     public void set(String key, Object value, Long time, TimeUnit unit) {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value), time, unit);
+    }
+
+    /**
+     * 取得 单对象
+     */
+    public <R> R get(String key,Class<R> type) {
+        String json = stringRedisTemplate.opsForValue().get(key);
+        //.判断是否存在
+        if (StrUtil.isNotBlank(json)) {
+            log.info("缓存存在，直接返回。");
+            //存在，直接返回
+            return JSONUtil.toBean(json, type);
+        }
+        return null;
+    }
+
+    /**
+     * 取得 list
+     */
+    public <T> List<T> getList(String key,Class<T> type) {
+        String json = stringRedisTemplate.opsForValue().get(key);
+        //.判断是否存在
+        if (StrUtil.isNotBlank(json)) {
+            log.info("缓存存在，直接返回。");
+            //存在，直接返回
+            List<T> list = JSONUtil.toBean(json, new TypeReference<List<T>>() {
+            }, true);
+            return list;
+        }
+        return null;
     }
 
     /**

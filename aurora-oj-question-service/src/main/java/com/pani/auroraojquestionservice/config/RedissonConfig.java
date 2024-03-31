@@ -45,7 +45,7 @@ public class RedissonConfig {
                 .setAddress("redis://" + host + ":" + port)
                 // 设置redis的密码(redis有密码才设置)
                 .setPassword(password);
-        //todo redis pwd..
+        //redis pwd.. 如果dev没有 配置文件就不写 这里也不会报错
 
         // 2.创建Redisson实例
         RedissonClient redisson = Redisson.create(config);

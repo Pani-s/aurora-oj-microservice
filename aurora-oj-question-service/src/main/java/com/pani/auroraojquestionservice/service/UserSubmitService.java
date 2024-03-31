@@ -2,6 +2,10 @@ package com.pani.auroraojquestionservice.service;
 
 import com.pani.ojmodel.entity.UserSubmit;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pani.ojmodel.vo.Rank;
+
+import java.util.List;
+import java.util.Map;
 
 /**
 * @author Pani
@@ -15,4 +19,15 @@ public interface UserSubmitService extends IService<UserSubmit> {
      */
     boolean updateUserSubmitRecord(long questionId,long userId);
 
+    /**
+     *更新排行榜，昨天到今天前number名（新通过题目数）
+     */
+    List<Rank> updateUserRankTodayNewPass(String yesterday, String now, int number);
+
+    /**
+     * 查询该userID下 一群questionIds是否存在
+     */
+    Map<Long, Map<String, Long>> checkExistForQuestionIdsMapper(Long userId, List<Long> questionIds);
+
+    List<Rank> getDailyRankNewPass();
 }

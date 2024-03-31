@@ -6,6 +6,7 @@ package com.pani.ojcommon.constant;
  * @description
  */
 public interface RedisConstant {
+    //region 题目
     /**
      * 题目页缓存
      */
@@ -22,4 +23,12 @@ public interface RedisConstant {
     long CACHE_QUESTION_TTL = 30;
 
     long CACHE_QUESTION_PAGE_TTL = 5;
+    //endregion
+
+    //region rank
+
+    String CACHE_RANK_NEW_PASS = "cache:rank:newpass:";
+
+    String CACHE_RANK_PASS = "cache:rank:pass:";
+    //endregion
 }

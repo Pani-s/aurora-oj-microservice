@@ -56,9 +56,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     private UserSubmitService userSubmitService;
 
     @Resource
-    private UserSubmitMapper userSubmitMapper;
-
-    @Resource
     @Lazy
     private QuestionSubmitService questionSubmitService;
 
@@ -265,7 +262,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
         Map<Long, Map<String,Long>> maps;
         if (user != null) {
-            maps = userSubmitMapper.checkExistForQuestionIds(user.getId(), questionIdList);
+            maps = userSubmitService.checkExistForQuestionIdsMapper(user.getId(), questionIdList);
         } else {
             maps = null;
         }

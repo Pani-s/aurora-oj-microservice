@@ -33,5 +33,14 @@
 #         GROUP BY questionId
     </select>
 
+    <select id="userCountDuringTime" resultType="com.pani.ojmodel.vo.Rank">
+        SELECT userId AS `userId`, COUNT(*) AS `count`
+        FROM `user_submit`
+        WHERE createTime between #{yesterday} AND #{now}
+        GROUP BY userId
+        ORDER BY count DESC
+        LIMIT 0,#{num}
+    </select>
+
 
 </mapper>

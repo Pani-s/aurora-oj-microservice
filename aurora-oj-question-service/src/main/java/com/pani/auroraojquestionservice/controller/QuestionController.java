@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pani.auroraojquestionservice.manager.RedisLimiterManager;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
+import com.pani.auroraojquestionservice.service.UserSubmitService;
 import com.pani.auroraojserviceclient.service.UserFeignClient;
 import com.pani.ojcommon.annotation.AuthCheck;
 import com.pani.ojcommon.common.BaseResponse;
@@ -21,9 +22,9 @@ import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.entity.User;
-import com.pani.ojmodel.enums.QuestionSubmitStatusEnum;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
 import com.pani.ojmodel.vo.QuestionVO;
+import com.pani.ojmodel.vo.Rank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -52,6 +53,9 @@ public class QuestionController {
     private QuestionService questionService;
 
     @Resource
+    private UserSubmitService userSubmitService;
+
+    @Resource
     private UserFeignClient userFeignClient;
 
     @Resource
@@ -65,9 +69,6 @@ public class QuestionController {
     /**
      * 创建
      *
-     * @param questionAddRequest
-     * @param request
-     * @return
      */
     @PostMapping("/add")
     public BaseResponse<Long> addQuestion(@RequestBody QuestionAddRequest questionAddRequest, HttpServletRequest request) {
@@ -100,9 +101,6 @@ public class QuestionController {
     /**
      * 删除 （仅本人或管理员）
      *
-     * @param deleteRequest
-     * @param request
-     * @return
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteQuestion(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
@@ -126,8 +124,6 @@ public class QuestionController {
      * 前端用的是update
      * 更新（仅管理员）
      *
-     * @param questionUpdateRequest
-     * @return
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -142,8 +138,6 @@ public class QuestionController {
     /**
      * 根据 id 获取 题目内容（只能管理员或者本人）
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get")
     public BaseResponse<Question> getQuestionById(long id, HttpServletRequest request) {
@@ -166,8 +160,6 @@ public class QuestionController {
     /**
      * 根据 id 获取 题目VO（脱敏后）
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get/vo")
     public BaseResponse<QuestionVO> getQuestionVOById(long id, HttpServletRequest request) {
@@ -186,8 +178,6 @@ public class QuestionController {
     /**
      * 根据 id 获取 答案，前提是这个用户做过
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get/answer")
     public BaseResponse<Question> getQuestionAnswerById(long id, HttpServletRequest request) {
@@ -200,9 +190,6 @@ public class QuestionController {
     /**
      * 分页获取列表（封装类）
      *QuestionVO中的UserVO没有填充
-     * @param questionQueryRequest
-     * @param request
-     * @return
      */
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
@@ -220,9 +207,6 @@ public class QuestionController {
     /**
      * 分页获取当前用户创建的问题列表
      *
-     * @param questionQueryRequest
-     * @param request
-     * @return
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
@@ -244,9 +228,6 @@ public class QuestionController {
     /**
      * 分页获取题目列表（仅管理员）
      *
-     * @param questionQueryRequest
-     * @param request
-     * @return
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -266,9 +247,6 @@ public class QuestionController {
     /**
      * 编辑题目的信息（用户）
      *
-     * @param questionEditRequest
-     * @param request
-     * @return
      */
     @PostMapping("/edit")
     public BaseResponse<Boolean> editQuestion(@RequestBody QuestionEditRequest questionEditRequest, HttpServletRequest request) {
@@ -302,8 +280,6 @@ public class QuestionController {
     /**
      * 分页获取题目提交列表（除了管理员外，普通用户只能看到非答案、提交代码等公开信息）
      * 该题目的提交列表---可以看代码，目前不能看提交用户名，我觉得还是匿名吧
-     * @param questionSubmitQueryRequest
-     * @param request
      */
     @PostMapping("/submit/list/page")
     public BaseResponse<Page<QuestionSubmitVO>> listSubmitQuestionByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest,
@@ -323,8 +299,6 @@ public class QuestionController {
 
     /**
      * 获取本人提交的题目
-     * @param questionSubmitQueryRequest
-     * @param request
      */
     @PostMapping("/submit/list/my/page")
     public BaseResponse<Page<QuestionSubmit>> listMySubmitQuestionByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest,
@@ -347,8 +321,6 @@ public class QuestionController {
 
     /**
      * 所有人的所有题目提交记录，按照时间排序(【【公屏】】，所以只能看到【提交用户id（甚至匿名） 语言)
-     * @param questionSubmitQueryRequest
-     * @param request
      */
     @PostMapping("/submit/list/all/page")
     public BaseResponse<Page<QuestionSubmit>> listAllSubmitQuestionByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest,
@@ -368,8 +340,6 @@ public class QuestionController {
 
     /**
      * 重试修改失败的提交
-     * @param deleteRequest
-     * @param request
      */
     @PostMapping("/submit/retry")
     public BaseResponse<Boolean> retryMyErrorSubmit(@RequestBody DeleteRequest deleteRequest,
@@ -383,8 +353,6 @@ public class QuestionController {
 
     /**
      * 删除修改失败的提交
-     * @param deleteRequest
-     * @param request
      */
     @PostMapping("/submit/delete")
     public BaseResponse<Boolean> delMyErrorSubmit(@RequestBody DeleteRequest deleteRequest,
@@ -399,6 +367,15 @@ public class QuestionController {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,"删除失败！");
         }
         return ResultUtils.success(b);
+    }
+    //endregion
+    //region rank
+    /**
+     * 获取每日排行榜 -- 新通过数
+     */
+    @GetMapping("/rank/daily/new")
+    public BaseResponse<List<Rank>> getDailyRankNewPass() {
+        return ResultUtils.success(userSubmitService.getDailyRankNewPass());
     }
     //endregion
 }
