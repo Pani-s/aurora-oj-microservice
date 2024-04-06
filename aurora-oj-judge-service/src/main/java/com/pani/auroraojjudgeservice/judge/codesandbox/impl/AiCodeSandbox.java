@@ -75,7 +75,7 @@ public class AiCodeSandbox implements CodeSandbox {
 
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         executeCodeResponse.setOutputList(outputList);
-        executeCodeResponse.setMessage(message);
+//        executeCodeResponse.setMessage(message);
         executeCodeResponse.setStatus(status);
 
         JudgeInfo judgeInfo = new JudgeInfo();

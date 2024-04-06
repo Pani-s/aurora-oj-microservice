@@ -5,11 +5,13 @@ import com.pani.auroraojjudgeservice.judge.codesandbox.CodeSandbox;
 import com.pani.auroraojjudgeservice.judge.codesandbox.CodeSandboxFactory;
 import com.pani.auroraojjudgeservice.judge.codesandbox.CodeSandboxProxy;
 import com.pani.auroraojjudgeservice.judge.strategy.JudgeContext;
+import com.pani.auroraojjudgeservice.rabbitmq.QuestionMessageProducer;
 import com.pani.auroraojserviceclient.service.QuestionFeignClient;
 import com.pani.ojcommon.common.ErrorCode;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojmodel.dto.question.JudgeCase;
 import com.pani.ojmodel.dto.question.JudgeConfig;
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.enums.JudgeInfoMessageEnum;
@@ -17,12 +19,15 @@ import com.pani.ojmodel.enums.QuestionSubmitStatusEnum;
 import com.pani.ojmodel.sandbox.ExecuteCodeRequest;
 import com.pani.ojmodel.sandbox.ExecuteCodeResponse;
 import com.pani.ojmodel.sandbox.JudgeInfo;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,6 +52,8 @@ public class JudgeServiceImpl implements JudgeService {
     private QuestionFeignClient questionFeignClient;
     @Resource
     private JudgeManager judgeManager;
+    @Resource
+    private QuestionMessageProducer questionMessageProducer;
 
     @PostConstruct
     public void initializeType() {
@@ -102,7 +109,6 @@ public class JudgeServiceImpl implements JudgeService {
                 inputList(inputList).
                 build();
         CodeSandbox codeSandbox = codeSandboxFactory.getInstanceWithType(atomicType.get());
-//        CodeSandbox codeSandbox = CodeSandboxFactory.getInstance();
         ExecuteCodeResponse executeCodeResponse;
         try {
             log.info("----调用沙箱，获取到执行结果-----");
@@ -126,8 +132,6 @@ public class JudgeServiceImpl implements JudgeService {
             if (!b) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目状态更新错误");
             }
-            //            QuestionSubmit questionSubmitResult = questionFeignClient.getQuestionSubmitById(questionId);
-            //            return questionSubmitResult;
             return true;
         }
 
@@ -152,33 +156,61 @@ public class JudgeServiceImpl implements JudgeService {
             log.info("该题AC了");
             //ac了才算成功
             questionSubmit.setStatus(QuestionSubmitStatusEnum.SUCCESS.getValue());
+            questionMessageProducer.sendMessage(String.valueOf(questionSubmitId));
         }else{
             log.info("该题有错误");
             questionSubmit.setStatus(QuestionSubmitStatusEnum.FAILED.getValue());
         }
+
         b = questionFeignClient.updateQuestionSubmitById(questionSubmit);
         if (!b) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目提交状态更新错误");
         }
-        //QuestionSubmit questionSubmitResult = questionFeignClient.getQuestionSubmitById(questionId);
-
-        //该题目，通过数加一
-        CompletableFuture.runAsync(() -> {
-            if (!questionFeignClient.incrAcNum(questionId)) {
-                log.error("题目通过数信息更新错误: {}",questionId);
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目通过数信息更新错误");
-            }
-        });
-
-        //记录用户通过
-        CompletableFuture.runAsync(() -> {
-            if (!questionFeignClient.updateUserSubmitRecord(questionId)) {
-                log.error("用户题目通过记录信息更新错误: {}",questionId);
-                //                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "题目通过数信息更新错误");
-            }
-        });
 
         return true;
+    }
+
+    @Override
+    public QuestionDebugResponse doDebug(QuestionDebugRequest questionDebugRequest) {
+        String language = questionDebugRequest.getLanguage();
+        String code = questionDebugRequest.getCode();
+        String input = questionDebugRequest.getInput();
+        QuestionDebugResponse questionDebugResponse = new QuestionDebugResponse();
+
+
+        //调用沙箱，获取到执行结果
+        ExecuteCodeRequest request = ExecuteCodeRequest.builder().
+                code(code).
+                language(language).
+                inputList(Collections.singletonList(input)).
+                build();
+        CodeSandbox codeSandbox = codeSandboxFactory.getInstanceWithType(atomicType.get());
+        ExecuteCodeResponse executeCodeResponse;
+        try {
+            log.info("----调用沙箱，获取到执行结果-----");
+            executeCodeResponse = new CodeSandboxProxy(codeSandbox).
+                    executeCode(request);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
+//            JudgeInfo judgeInfo = new JudgeInfo();
+//            judgeInfo.setMessage("系统错误，执行出错，请稍后再试。");
+//            questionDebugResponse.setJudgeInfo(judgeInfo);
+//            return questionDebugResponse;
+        }
+
+        //根据沙箱的执行结果，设置题目的判题状态和信息
+        Integer resStatus = executeCodeResponse.getStatus();
+        if (!resStatus.equals(RUN_SUCCESS)) {
+            //说明没有正常退出，但是得到执行结果了？ 说明流程还是走完了的
+            log.info("沙箱没有正常退出，但是得到执行结果,如编译错误，运行时错误");
+            questionDebugResponse.setIsSuccess(false);
+        }else{
+            questionDebugResponse.setIsSuccess(true);
+        }
+
+        questionDebugResponse.setOutput(executeCodeResponse.getOutputList().get(0));
+        questionDebugResponse.setJudgeInfo(executeCodeResponse.getJudgeInfo());
+        return questionDebugResponse;
     }
 
     @Override

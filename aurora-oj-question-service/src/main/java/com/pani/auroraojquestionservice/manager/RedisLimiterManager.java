@@ -30,7 +30,7 @@ public class RedisLimiterManager {
     public void doRateLimit(String key) {
         // 创建一个名称为user_limiter的限流器，每 5 秒最多访问 1 次
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
-        // 限流器的统计规则(每3秒1个请求;连续的请求,最多只能有1个请求被允许通过)
+        // 限流器的统计规则(每5秒1个请求;连续的请求,最多只能有1个请求被允许通过)
         // RateType.OVERALL表示速率限制作用于整个令牌桶,即限制所有请求的速率
         rateLimiter.trySetRate(RateType.OVERALL, 1,  5 , RateIntervalUnit.SECONDS);
         // 每当一个操作来了后，请求一个令牌

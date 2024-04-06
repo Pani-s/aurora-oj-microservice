@@ -14,8 +14,8 @@ spring:
   # session 配置
   session:
     store-type: redis
-    # 30 天过期
-    timeout: 2592000
+    # 3 天过期
+    timeout: 259200
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -53,10 +53,10 @@ server:
   port: 8104
   servlet:
     context-path: /api/judge
-    # cookie 30 天过期
+    # cookie 3 天过期
     session:
       cookie:
-        max-age: 2592000
+        max-age: 259200
         path: /api
 mybatis-plus:
   configuration:
@@ -70,8 +70,8 @@ mybatis-plus:
 
 # 代码沙箱 类型配置
 codeSandbox:
-  type: ai
-  remoteUrl: http://www.soogyu.xyz:8105
+  type: remote
+  remoteUrl: http://localhost:8105
 knife4j:
   enable: true
 

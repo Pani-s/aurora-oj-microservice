@@ -14,8 +14,8 @@ spring:
   # session 配置
   session:
     store-type: redis
-    # 30 天过期
-    timeout: 2592000
+    # 3 天过期
+    timeout: 259200
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -39,7 +39,13 @@ spring:
     nacos:
       discovery:
         server-addr: ${pani.nacos.host:localhost}:8848
-
+# 对象存储
+cos:
+  qiniu:
+    accessKey: ${pani.cos.qiniu.accessKey}
+    secretKey: ${pani.cos.qiniu.secretKey}
+    region: ${pani.cos.qiniu.region}
+    bucket: ${pani.cos.qiniu.bucket}
 
 #server
 server:
@@ -47,10 +53,10 @@ server:
   port: 8102
   servlet:
     context-path: /api/user
-    # cookie 30 天过期
+    # cookie 3 天过期
     session:
       cookie:
-        max-age: 2592000
+        max-age: 259200
         path: /api
 mybatis-plus:
   configuration:

@@ -44,21 +44,26 @@ public class InitRabbitMqBean {
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
             // 声明死信队列
-            channel.exchangeDeclare(MqConstant.DLX_EXCHANGE_NAME, "direct");
-            channel.queueDeclare(MqConstant.DLX_QUEUE_NAME, true, false, false, null);
-            channel.queueBind(MqConstant.DLX_QUEUE_NAME, MqConstant.DLX_EXCHANGE_NAME,
-                    MqConstant.DLX_ROUTING_KEY);
-
-
-            channel.exchangeDeclare(MqConstant.EXCHANGE_NAME, "direct");
-
+            channel.exchangeDeclare(MqConstant.JUDGE_DLX_EXCHANGE, "direct");
+            channel.queueDeclare(MqConstant.JUDGE_DLX_QUEUE, true, false, false, null);
+            channel.queueBind(MqConstant.JUDGE_DLX_QUEUE, MqConstant.JUDGE_DLX_EXCHANGE,
+                    MqConstant.JUDGE_DLX_ROUTING);
+            //判题队列
+            channel.exchangeDeclare(MqConstant.JUDGE_EXCHANGE_NAME, "direct");
             Map<String, Object> arg = new HashMap<>();
-            arg.put("x-dead-letter-exchange", MqConstant.DLX_EXCHANGE_NAME);
-            arg.put("x-dead-letter-routing-key", MqConstant.DLX_ROUTING_KEY);
+            arg.put("x-dead-letter-exchange", MqConstant.JUDGE_DLX_EXCHANGE);
+            arg.put("x-dead-letter-routing-key", MqConstant.JUDGE_DLX_ROUTING);
             // 声明队列，设置队列持久化、非独占、非自动删除，并传入额外的参数为 map 的arg!!!!
-            channel.queueDeclare(MqConstant.QUEUE_NAME, true, false, false, arg);
-            channel.queueBind(MqConstant.QUEUE_NAME, MqConstant.EXCHANGE_NAME,
-                    MqConstant.ROUTING_KEY);
+            channel.queueDeclare(MqConstant.JUDGE_QUEUE_NAME, true, false, false, arg);
+            channel.queueBind(MqConstant.JUDGE_QUEUE_NAME, MqConstant.JUDGE_EXCHANGE_NAME,
+                    MqConstant.JUDGE_ROUTING_KEY);
+
+            //question的
+            channel.exchangeDeclare(MqConstant.QUESTION_EXCHANGE_NAME, "direct");
+            channel.queueDeclare(MqConstant.QUESTION_QUEUE_NAME, true, false, false, null);
+            channel.queueBind(MqConstant.QUESTION_QUEUE_NAME, MqConstant.QUESTION_EXCHANGE_NAME,
+                    MqConstant.QUESTION_ROUTING_KEY);
+
             log.info("消息队列启动成功");
         } catch (Exception e) {
             log.error("消息队列启动失败", e);

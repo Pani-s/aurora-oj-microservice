@@ -17,6 +17,7 @@ public interface RedisConstant {
     String CACHE_QUESTION = "cache:question:";
 
     String QUESTION_SUBMIT_LIMIT = "question:submit:";
+    String QUESTION_DEBUG_LIMIT = "question:debug:";
 
     long CACHE_NULL_TTL = 5;
 

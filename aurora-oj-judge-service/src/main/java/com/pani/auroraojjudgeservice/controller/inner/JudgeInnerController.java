@@ -2,10 +2,9 @@ package com.pani.auroraojjudgeservice.controller.inner;
 
 import com.pani.auroraojjudgeservice.judge.JudgeService;
 import com.pani.auroraojserviceclient.service.JudgeFeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 
@@ -26,9 +25,13 @@ public class JudgeInnerController implements JudgeFeignClient {
      * @param questionSubmitId
      */
     @Override
-    @PostMapping("/do")
-    public boolean doJudge(@RequestParam("questionSubmitId") long questionSubmitId){
+    public boolean doJudge(long questionSubmitId){
         return judgeService.doJudge(questionSubmitId);
+    }
+
+    @Override
+    public QuestionDebugResponse doDebug(QuestionDebugRequest questionDebugRequest) {
+        return judgeService.doDebug(questionDebugRequest);
     }
 
 

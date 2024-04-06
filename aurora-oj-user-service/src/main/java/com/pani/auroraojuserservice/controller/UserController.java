@@ -1,12 +1,16 @@
 package com.pani.auroraojuserservice.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.luciad.imageio.webp.WebPWriteParam;
+import com.pani.auroraojuserservice.manager.CosManager;
 import com.pani.auroraojuserservice.service.UserService;
 import com.pani.ojcommon.annotation.AuthCheck;
 import com.pani.ojcommon.common.BaseResponse;
 import com.pani.ojcommon.common.DeleteRequest;
 import com.pani.ojcommon.common.ErrorCode;
 import com.pani.ojcommon.common.ResultUtils;
+import com.pani.ojcommon.constant.FileConstant;
 import com.pani.ojcommon.constant.UserConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojcommon.exception.ThrowUtils;
@@ -18,24 +22,52 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.FileImageOutputStream;
+import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.servlet.http.HttpServletRequest;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * 用户接口
  *
  * @author pani
- * 
  */
 @RestController
 @RequestMapping("/")
 @Slf4j
 public class UserController {
 
+    /**
+     * 定义合法的后缀列表
+     */
+    final List<String> validFileSuffixList = Arrays.asList("png", "jpg", "svg", "webp", "jpeg");
+
     @Resource
     private UserService userService;
+
+    @Resource
+    private CosManager cosManager;
+
+
+/*    static{
+        //方法一
+        File file = new File(System.getProperty("user.dir") + File.separator + "tmpPic");
+        if(!file.exists()){
+            file.mkdirs();
+        }
+    }*/
 
     // region 登录相关
 
@@ -160,12 +192,79 @@ public class UserController {
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest,
-            HttpServletRequest request) {
+                                            HttpServletRequest request) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新头像
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/update/avatar")
+    public BaseResponse<Boolean> updateAvatar(@RequestPart(value = "file") MultipartFile file, HttpServletRequest request) {
+
+        if (file == null || file.getSize() == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        User loginUser = userService.getLoginUser(request);
+        User user = new User();
+        user.setId(loginUser.getId());
+        ThrowUtils.throwIf(file.getSize() > 2 * FileConstant.ONE_MB, ErrorCode.PARAMS_ERROR, "文件过大，超过 2M");
+        String suffix = FileUtil.getSuffix(file.getOriginalFilename());
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀不合法");
+        try {
+            BufferedImage image = ImageIO.read(file.getInputStream());
+            ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
+            WebPWriteParam writeParam = new WebPWriteParam(writer.getLocale());
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            // 设置有损压缩
+            writeParam.setCompressionType(writeParam.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
+            //设置 70% 的质量. 设置范围 0-1
+            writeParam.setCompressionQuality(0.7f);
+            log.info("Save the image");
+
+            // Save the image 【temp】
+            //方法一
+            /*File tempFile = File.createTempFile("temp", ".webp",
+                    new File(System.getProperty("user.dir")+ File.separator + "tmpPic"));
+            ImageOutputStream imageOutputStream = new FileImageOutputStream(tempFile);
+            writer.setOutput(imageOutputStream);
+            writer.write(null, new IIOImage(image, null, null), writeParam);
+            imageOutputStream.close();
+            //使用临时文件创建输入流
+            InputStream inputStream = Files.newInputStream(tempFile.toPath());*/
+
+            //方法二
+            // 1.将图像数据写入内存中的字节数组
+            ByteArrayOutputStream byteOutput = new ByteArrayOutputStream();
+            ImageOutputStream imageOutput = new MemoryCacheImageOutputStream(byteOutput);
+            writer.setOutput(imageOutput);
+            writer.write(null, new IIOImage(image, null, null), writeParam);
+            imageOutput.close();
+            byte[] imageData = byteOutput.toByteArray();
+            // 2. 使用字节数组创建输入流
+            InputStream inputStream = new ByteArrayInputStream(imageData);
+
+            String prefix = FileUtil.getPrefix(file.getOriginalFilename());
+            String avatarUrl = cosManager.putObject(inputStream, prefix + ".webp");
+            user.setUserAvatar(avatarUrl);
+
+            //方法一 delete 临时文件
+            /*tempFile.delete();*/
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "头像文件有误");
+        }
+
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
@@ -213,7 +312,7 @@ public class UserController {
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest,
-            HttpServletRequest request) {
+                                                   HttpServletRequest request) {
         long current = userQueryRequest.getCurrent();
         long size = userQueryRequest.getPageSize();
         Page<User> userPage = userService.page(new Page<>(current, size),
@@ -230,7 +329,7 @@ public class UserController {
      */
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest,
-            HttpServletRequest request) {
+                                                       HttpServletRequest request) {
         if (userQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -247,7 +346,6 @@ public class UserController {
     }
 
 
-
     /**
      * 更新个人信息
      *
@@ -257,7 +355,7 @@ public class UserController {
      */
     @PostMapping("/update/my")
     public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest,
-            HttpServletRequest request) {
+                                              HttpServletRequest request) {
         if (userUpdateMyRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -269,6 +367,7 @@ public class UserController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
+
     /**
      * 改密码
      *

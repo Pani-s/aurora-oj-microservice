@@ -50,12 +50,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if (userAccount.length() < UserConstant.ACCOUNT_LEN_SHORTEST) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+        if (userAccount.length() < UserConstant.ACCOUNT_LEN_SHORTEST || userAccount.length() > UserConstant.ACCOUNT_LEN_MAX) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号长度不符合规定");
         }
-        if (userPassword.length() < UserConstant.PWD_LEN_SHORTEST ||
-                checkPassword.length() < UserConstant.PWD_LEN_SHORTEST) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        if (userPassword.length() < UserConstant.PWD_LEN_SHORTEST || userPassword.length() > UserConstant.PWD_LEN_MAX) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码长度不符合规定");
         }
         // 密码和校验密码相同
         if (!userPassword.equals(checkPassword)) {
@@ -67,7 +66,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.eq("userAccount", userAccount);
             long count = this.baseMapper.selectCount(queryWrapper);
             if (count > 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已被注册");
             }
             // 2. 加密
             String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -77,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setUserPassword(encryptPassword);
             boolean saveResult = this.save(user);
             if (!saveResult) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，系统错误，请稍后再试");
             }
             return user.getId();
         }
@@ -89,10 +88,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if (userAccount.length() < UserConstant.ACCOUNT_LEN_SHORTEST) {
+        if (userAccount.length() < UserConstant.ACCOUNT_LEN_SHORTEST || userAccount.length() > UserConstant.ACCOUNT_LEN_MAX) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号错误");
         }
-        if (userPassword.length() < UserConstant.PWD_LEN_SHORTEST) {
+        if (userPassword.length() < UserConstant.PWD_LEN_SHORTEST || userPassword.length() > UserConstant.PWD_LEN_MAX) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
         // 2. 加密

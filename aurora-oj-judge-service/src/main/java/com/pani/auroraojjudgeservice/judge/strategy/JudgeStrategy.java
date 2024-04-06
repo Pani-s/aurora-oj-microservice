@@ -9,6 +9,7 @@ import com.pani.ojmodel.sandbox.JudgeInfo;
  * @description
  */
 public interface JudgeStrategy {
+    int DIVIDE_TO_KB = 1024;
     /**
      * 执行判题
      * @param judgeContext

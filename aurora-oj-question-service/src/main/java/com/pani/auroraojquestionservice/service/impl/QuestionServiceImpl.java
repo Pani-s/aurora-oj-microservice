@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pani.auroraojquestionservice.manager.CacheClient;
 import com.pani.auroraojquestionservice.mapper.QuestionMapper;
-import com.pani.auroraojquestionservice.mapper.UserSubmitMapper;
 import com.pani.auroraojquestionservice.service.QuestionService;
 import com.pani.auroraojquestionservice.service.QuestionSubmitService;
 import com.pani.auroraojquestionservice.service.UserSubmitService;
@@ -116,7 +115,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         if (id != null || !(StringUtils.isAllBlank(title, content)) || !(CollectionUtil.isEmpty(tags))) {
             //id不为空，搜索词不全空，tags不空，则不能走缓存
             Page<Question> questionPage = this.page(new Page<>(current, size),
-                    this.getQueryWrapper(questionQueryRequest));
+                    this.getQueryWrapperWithoutContent(questionQueryRequest));
             return this.getQuestionVOPage(questionPage, loginUser);
         }
 
@@ -135,10 +134,44 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
         //查询。放缓存
         Page<Question> questionPage = this.page(new Page<>(current, size),
-                this.getQueryWrapper(questionQueryRequest));
+                this.getQueryWrapperWithoutContent(questionQueryRequest));
         Page<QuestionVO> questionVOPage = this.getQuestionVOPage(questionPage, loginUser);
         cacheClient.set(key, questionVOPage, RedisConstant.CACHE_QUESTION_PAGE_TTL, TimeUnit.MINUTES);
         return questionVOPage;
+    }
+
+
+    /**
+     * 获取查询包装类 但是不要题目的详细信息
+     *
+     * @param questionQueryRequest
+     * @return
+     */
+    @Override
+    public QueryWrapper<Question> getQueryWrapperWithoutContent(QuestionQueryRequest questionQueryRequest) {
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+        if (questionQueryRequest == null) {
+            return queryWrapper;
+        }
+        Long id = questionQueryRequest.getId();
+        String title = questionQueryRequest.getTitle();
+        List<String> tagList = questionQueryRequest.getTags();
+        String sortField = questionQueryRequest.getSortField();
+        String sortOrder = questionQueryRequest.getSortOrder();
+
+        // 拼接查询条件
+        queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
+        if (CollectionUtils.isNotEmpty(tagList)) {
+            for (String tag : tagList) {
+                queryWrapper.like("tags", "\"" + tag + "\"");
+            }
+        }
+        queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
+        queryWrapper.eq("isDelete", false);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+                sortField);
+        queryWrapper.select("id","title","tags","submitNum","acceptedNum");
+        return queryWrapper;
     }
 
     /**
@@ -383,7 +416,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
     @Override
     public boolean incrAcNum(Long questionId) {
-
         UpdateWrapper<Question> questionUpdateWrapper = new UpdateWrapper<>();
         questionUpdateWrapper.eq("id", questionId);
         questionUpdateWrapper.setSql("acceptedNum = acceptedNum + 1");

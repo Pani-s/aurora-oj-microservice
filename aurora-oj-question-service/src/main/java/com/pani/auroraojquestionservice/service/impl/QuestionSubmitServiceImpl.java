@@ -15,6 +15,7 @@ import com.pani.ojcommon.constant.CommonConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojcommon.exception.ThrowUtils;
 import com.pani.ojcommon.utils.SqlUtils;
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.pani.ojmodel.entity.Question;
@@ -22,6 +23,7 @@ import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.entity.User;
 import com.pani.ojmodel.enums.QuestionSubmitLanguageEnum;
 import com.pani.ojmodel.enums.QuestionSubmitStatusEnum;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -71,6 +73,12 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         if (languageEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "编程语言错误");
         }
+        //校检长度
+        int length = questionSubmitAddRequest.getCode().length();
+        if(length > CommonConstant.MAX_CODE_LEN){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户提交代码长度超出限制");
+        }
+
         long questionId = questionSubmitAddRequest.getQuestionId();
         // 判断实体是否存在，根据类别获取实体
         Question question = questionService.getById(questionId);
@@ -118,6 +126,20 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
 //        });
 
         return questionSubmitId;
+    }
+
+    @Override
+    public QuestionDebugResponse doQuestionDebug(QuestionDebugRequest questionDebugRequest) {
+        int length = questionDebugRequest.getCode().length();
+        if(length > CommonConstant.MAX_CODE_LEN){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户提交代码长度超出限制");
+        }
+        QuestionDebugResponse questionDebugResponse = judgeFeignClient.doDebug(questionDebugRequest);
+        //解决一下远程调用后抛出的异常怎么接的问题。。
+        if(questionDebugResponse.getJudgeInfo() == null){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        return questionDebugResponse;
     }
 
     @Override

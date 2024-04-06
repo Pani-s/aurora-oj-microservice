@@ -17,11 +17,13 @@ import com.pani.ojcommon.constant.UserConstant;
 import com.pani.ojcommon.exception.BusinessException;
 import com.pani.ojcommon.exception.ThrowUtils;
 import com.pani.ojmodel.dto.question.*;
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.pani.ojmodel.entity.Question;
 import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.entity.User;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
 import com.pani.ojmodel.vo.QuestionVO;
 import com.pani.ojmodel.vo.Rank;
@@ -60,9 +62,6 @@ public class QuestionController {
 
     @Resource
     private QuestionSubmitService questionSubmitService;
-
-    //准备都用Hutool了
-//    private final static Gson GSON = new Gson();
 
     // region 增删改查
 
@@ -260,7 +259,7 @@ public class QuestionController {
     // endregion
     //region 题目提交
     /**
-     * 提交题目
+     * 提交题目---异步
      * @return id
      */
     @PostMapping("/submit/do")
@@ -275,6 +274,24 @@ public class QuestionController {
         redisLimiterManager.doRateLimit(RedisConstant.QUESTION_SUBMIT_LIMIT + loginUser.getId());
         long questionSubmitId = questionSubmitService.doQuestionSubmit(questionSubmitAddRequest, loginUser);
         return ResultUtils.success(questionSubmitId);
+    }
+
+    /**
+     * debug测试---同步
+     * @return id
+     */
+    @PostMapping("/submit/debug")
+    public BaseResponse<QuestionDebugResponse> doQuestionSubmitDebug(@RequestBody QuestionDebugRequest questionDebugRequest,
+                                                                     HttpServletRequest request) {
+        if (questionDebugRequest == null || questionDebugRequest.getQuestionId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 登录才能操作
+        final User loginUser = userFeignClient.getLoginUser(request);
+        //判定限流
+        redisLimiterManager.doRateLimit(RedisConstant.QUESTION_SUBMIT_LIMIT + loginUser.getId());
+        QuestionDebugResponse questionDebugResponse = questionSubmitService.doQuestionDebug(questionDebugRequest);
+        return ResultUtils.success(questionDebugResponse);
     }
 
     /**

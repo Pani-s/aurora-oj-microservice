@@ -31,6 +31,14 @@ public interface UserConstant {
     String BAN_ROLE = "ban";
 
     // endregion
+    /**
+     * 用户账户最短长度限制
+     */
     int ACCOUNT_LEN_SHORTEST = 3;
+    int ACCOUNT_LEN_MAX = 20;
+    /**
+     * 用户密码最短长度限制
+     */
     int PWD_LEN_SHORTEST = 6;
+    int PWD_LEN_MAX = 20;
 }

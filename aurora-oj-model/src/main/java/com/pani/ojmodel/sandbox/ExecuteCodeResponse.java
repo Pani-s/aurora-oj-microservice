@@ -21,10 +21,10 @@ public class ExecuteCodeResponse {
      * 执行产生的输出结果
      */
     List<String> outputList;
-    /**
-     * 代码沙箱的接口信息
-     */
-    private String message;
+//    /**
+//     * 代码沙箱的接口信息
+//     */
+//    private String message;
 
     /**
      * 执行状态 0正常结束 1编译错误 2运行错误

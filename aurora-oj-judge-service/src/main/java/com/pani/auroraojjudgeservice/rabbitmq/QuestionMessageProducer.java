@@ -1,4 +1,4 @@
-package com.pani.auroraojquestionservice.rabbitmq;
+package com.pani.auroraojjudgeservice.rabbitmq;
 
 import com.pani.ojcommon.constant.MqConstant;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -12,7 +12,7 @@ import javax.annotation.Resource;
  * @description
  */
 @Component
-public class JudgeMessageProducer {
+public class QuestionMessageProducer {
     @Resource
     private RabbitTemplate rabbitTemplate;
 
@@ -21,8 +21,7 @@ public class JudgeMessageProducer {
      * @param message question submit id
      */
     public void sendMessage(String message) {
-        rabbitTemplate.convertAndSend(MqConstant.JUDGE_EXCHANGE_NAME, MqConstant.JUDGE_ROUTING_KEY, message);
-
+        rabbitTemplate.convertAndSend(MqConstant.QUESTION_EXCHANGE_NAME, MqConstant.QUESTION_ROUTING_KEY, message);
     }
 
 }

@@ -1,8 +1,12 @@
 package com.pani.auroraojserviceclient.service;
 
 
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -17,8 +21,16 @@ public interface JudgeFeignClient {
      *
      * @param questionSubmitId
      */
-    @GetMapping("/do")
-    boolean doJudge(@RequestParam("questionSubmitId") long questionSubmitId);
+    @PostMapping("/do")
+    boolean doJudge(@RequestBody long questionSubmitId);
+
+    /**
+     * 测试运行
+     * @param questionDebugRequest
+     * @return
+     */
+    @PostMapping("/debug")
+    QuestionDebugResponse doDebug(@RequestBody QuestionDebugRequest questionDebugRequest);
 
 
 

@@ -20,7 +20,7 @@ public interface UserSubmitService extends IService<UserSubmit> {
     boolean updateUserSubmitRecord(long questionId,long userId);
 
     /**
-     *更新排行榜，昨天到今天前number名（新通过题目数）
+     *更新排行榜，昨天(或者特定时间)到今天前number名（新通过题目数）
      */
     List<Rank> updateUserRankTodayNewPass(String yesterday, String now, int number);
 

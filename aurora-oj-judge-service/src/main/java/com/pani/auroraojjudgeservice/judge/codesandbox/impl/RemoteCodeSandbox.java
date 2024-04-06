@@ -37,7 +37,8 @@ public class RemoteCodeSandbox implements CodeSandbox {
     @Override
     public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
         log.info("-------远程代码沙箱docker---------");
-        String url = remoteUrl + "/executeCode/";
+//        String url = remoteUrl + "/executeCode/";
+        String url = remoteUrl + "/executeCode/ACM";
         String json = JSONUtil.toJsonStr(executeCodeRequest);
         try (HttpResponse httpResponse = HttpUtil.createPost(url)
                 .header(AUTH_REQUEST_HEADER, AUTH_REQUEST_SECRET)

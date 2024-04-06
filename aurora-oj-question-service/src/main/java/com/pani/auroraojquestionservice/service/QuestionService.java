@@ -35,6 +35,14 @@ public interface QuestionService extends IService<Question> {
                                           HttpServletRequest request);
 
     /**
+     * 获取查询包装类 但是不要题目的详细信息
+     *
+     * @param questionQueryRequest
+     * @return
+     */
+    QueryWrapper<Question> getQueryWrapperWithoutContent(QuestionQueryRequest questionQueryRequest);
+
+    /**
      * 获取查询条件
      *
      * @param questionQueryRequest

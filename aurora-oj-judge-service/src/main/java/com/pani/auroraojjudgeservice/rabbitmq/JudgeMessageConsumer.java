@@ -30,7 +30,7 @@ public class JudgeMessageConsumer {
      *     指定程序监听的消息队列和确认机制
       */
     @SneakyThrows
-    @RabbitListener(queues = {MqConstant.QUEUE_NAME}, ackMode = "MANUAL")
+    @RabbitListener(queues = {MqConstant.JUDGE_QUEUE_NAME}, ackMode = "MANUAL")
     public void receiveMessage(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         log.info("消息队列receiveMessage message = {}", message);
         long questionSubmitId = Long.parseLong(message);
@@ -48,10 +48,10 @@ public class JudgeMessageConsumer {
      *
      */
     @SneakyThrows
-    @RabbitListener(queues = {MqConstant.DLX_QUEUE_NAME}, ackMode = "MANUAL")
+    @RabbitListener(queues = {MqConstant.JUDGE_DLX_QUEUE}, ackMode = "MANUAL")
     public void receiveErrorMessage(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         long questionSubmitId = Long.parseLong(message);
-        log.info("---------死信消费异常消息--------question id : {}",questionSubmitId);
+        log.info("---------死信消费异常消息--------questionSubmit id : {}",questionSubmitId);
         boolean b = questionFeignClient.setQuestionSubmitFailure(questionSubmitId);
         if(!b){
             log.error("题目状态数据库更改失败！");

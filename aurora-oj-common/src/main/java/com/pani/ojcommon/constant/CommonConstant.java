@@ -17,5 +17,10 @@ public interface CommonConstant {
      * 降序
      */
     String SORT_ORDER_DESC = " descend";
+
+    /**
+     * 提交代码长度限制
+     */
+    int MAX_CODE_LEN = 10000;
     
 }

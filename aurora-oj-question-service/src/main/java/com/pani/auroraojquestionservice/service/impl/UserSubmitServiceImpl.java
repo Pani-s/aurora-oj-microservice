@@ -53,6 +53,8 @@ public class UserSubmitServiceImpl extends ServiceImpl<UserSubmitMapper, UserSub
         UserSubmit userSubmit = new UserSubmit();
         userSubmit.setUserId(userId);
         userSubmit.setQuestionId(questionId);
+        //同时需要删除这个用户question列表缓存
+        cacheClient.deleteKeyWithPrefix(RedisConstant.CACHE_QUESTION_PAGE + "*" + userId);
         return this.save(userSubmit);
     }
 
@@ -95,7 +97,7 @@ public class UserSubmitServiceImpl extends ServiceImpl<UserSubmitMapper, UserSub
             LocalDate now = LocalDate.now();
             String nowStr = now.format(formatter);
             // 获取当前日期，并设置为昨天
-            LocalDate yesterday = now.minusDays(1);
+            LocalDate yesterday = now.minusDays(3);
             String yesterdayStr = yesterday.format(formatter);
             List<Rank> ranks = this.updateUserRankTodayNewPass(yesterdayStr + " 00:00:00", nowStr + " 00:00:00", 3);
             cacheClient.set(RedisConstant.CACHE_RANK_NEW_PASS, ranks, 12L, TimeUnit.HOURS);

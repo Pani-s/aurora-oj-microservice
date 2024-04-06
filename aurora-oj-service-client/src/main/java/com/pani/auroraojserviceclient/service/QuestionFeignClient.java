@@ -40,6 +40,7 @@ public interface QuestionFeignClient {
     boolean updateQuestionSubmitById(@RequestBody QuestionSubmit questionSubmit);
 
     /**
+     * 【暂时没用】
      * 增加 题目通过数
      * @param questionId
      * @return
@@ -55,7 +56,7 @@ public interface QuestionFeignClient {
     @PostMapping("/question_submit/fail")
     boolean setQuestionSubmitFailure(@RequestBody long questionSubmitId);
 
-    /**
+    /**【暂时没用】
      * 更新 - 如果用户已经通过了就不做 用户没通过就增加记录
      * @param questionSubmitId
      * @return

@@ -3,10 +3,12 @@ package com.pani.auroraojquestionservice.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pani.ojmodel.dto.questionsubmit.QuestionDebugRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.pani.ojmodel.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.pani.ojmodel.entity.QuestionSubmit;
 import com.pani.ojmodel.entity.User;
+import com.pani.ojmodel.vo.QuestionDebugResponse;
 import com.pani.ojmodel.vo.QuestionSubmitVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +27,14 @@ public interface QuestionSubmitService extends IService<QuestionSubmit> {
      * @return
      */
     long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser);
+
+    /**
+     * 题目提交
+     *
+     * @param questionDebugRequest 题目debug信息
+     * @return
+     */
+    QuestionDebugResponse doQuestionDebug(QuestionDebugRequest questionDebugRequest);
 
     /**
      * 获取查询条件

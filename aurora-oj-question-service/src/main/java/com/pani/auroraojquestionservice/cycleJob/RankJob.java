@@ -39,7 +39,7 @@ public class RankJob {
         LocalDateTime now = LocalDateTime.now();
         String nowStr = now.format(formatter);
         // 获取当前日期，并设置为昨天
-        LocalDateTime yesterday = now.minusDays(1);
+        LocalDateTime yesterday = now.minusDays(3);
         String yesterdayStr = yesterday.format(formatter);
         // 从题目通过记录表中统计每个用户新通过的题号数量
         List<Rank> userRankToday = userSubmitService.updateUserRankTodayNewPass(yesterdayStr, nowStr, 3);
